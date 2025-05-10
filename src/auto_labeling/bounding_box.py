@@ -1,11 +1,14 @@
-# python labeling.py -i image.png -t 200 -o result.txt
-
 import os
 import sys
-import argparse
 import numpy as np
 from PIL import Image
-from typing import Tuple, Dict
+from typing import Dict
+
+
+# 在這裡設定輸入圖片路徑
+IMAGE_PATH = "D:\\Users\\lucas\\LocalFiles\\Github\\Kibo-RPC_6th\\src\\auto_labeling\\examples\\coin_30p_30_1.png"  # 請將這裡改為您實際的圖片路徑
+# 閾值設定 (小於此值的像素被視為黑色，預設255表示任何非純白都視為黑色)
+THRESHOLD = 255
 
 
 def analyze_bw_image(image_path: str, threshold: int = 255) -> Dict[str, int]:
@@ -14,7 +17,7 @@ def analyze_bw_image(image_path: str, threshold: int = 255) -> Dict[str, int]:
     
     參數:
         image_path: 圖片檔案路徑
-        threshold: 像素值閾值，小於此值被視為黑色 (預設255表示非純白即視為黑色)
+        threshold: 像素值閾值，小於此值被視為黑色
         
     回傳:
         包含x, y, width, height的字典
@@ -68,16 +71,16 @@ def analyze_bw_image(image_path: str, threshold: int = 255) -> Dict[str, int]:
 
 def main():
     """主程式入口點"""
-    # 解析命令列參數
-    parser = argparse.ArgumentParser(description='黑白圖片邊界檢測工具')
-    parser.add_argument('--input', '-i', required=True, help='輸入圖片檔案路徑')
-    parser.add_argument('--threshold', '-t', type=int, default=255, 
-                        help='像素閾值，小於此值被視為黑色 (預設255，表示非純白即為黑色)')
-    parser.add_argument('--output', '-o', default=None, help='輸出結果檔案路徑 (可選)')
-    args = parser.parse_args()
+    print(f"正在分析圖片: {IMAGE_PATH}")
+    print(f"閾值設定: {THRESHOLD} (小於此值的像素被視為黑色)")
+    
+    # 檢查檔案是否存在
+    if not os.path.exists(IMAGE_PATH):
+        print(f"錯誤: 找不到圖片 '{IMAGE_PATH}'")
+        return
     
     # 分析圖片
-    result = analyze_bw_image(args.input, args.threshold)
+    result = analyze_bw_image(IMAGE_PATH, THRESHOLD)
     
     # 輸出結果
     print("\n分析結果:")
@@ -86,14 +89,10 @@ def main():
     print(f"width: {result['width']}  # 黑色區域的寬度")
     print(f"height: {result['height']}  # 黑色區域的高度")
     
-    # 保存結果 (如果指定了輸出檔案)
-    if args.output:
-        with open(args.output, 'w', encoding='utf-8') as f:
-            f.write(f"x: {result['x']}\n")
-            f.write(f"y: {result['y']}\n")
-            f.write(f"width: {result['width']}\n")
-            f.write(f"height: {result['height']}\n")
-        print(f"\n結果已保存至: {args.output}")
+    # 保持視窗開啟直到按下任意鍵 (Windows系統)
+    if os.name == 'nt':  # Windows
+        print("\n按下任意鍵結束...")
+        os.system('pause')
 
 
 if __name__ == "__main__":
