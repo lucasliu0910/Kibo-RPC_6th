@@ -12,7 +12,7 @@ except ImportError:
 # 在這裡設定輸入圖片路徑 - 使用r前綴的原始字串避免Unicode轉義問題
 IMAGE_PATH = r"D:/Users/lucas/LocalFiles/Github/Kibo-RPC_6th/src/auto_labeling/examples/coin_30p_30_1.png"
 # 閾值設定 (小於此值的像素被視為黑色)
-THRESHOLD = 200
+THRESHOLD = 150
 # 是否輸出結果到文件
 OUTPUT_TO_FILE = True
 # 輸出文件路徑
