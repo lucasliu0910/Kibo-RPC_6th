@@ -1,50 +1,103 @@
 import os
 from PIL import Image
 
-# 設定本地路徑，請根據您的本地資料夾結構調整
-base_folder = "D:\\Users\\lucas\\LocalFiles\\Github\\Kibo-RPC_6th\\assets"  # 替換為您電腦上的資料夾路徑
+# 設定路徑 - 使用原始字串 r 前綴
+base_folder = r"D:\Users\lucas\LocalFiles\Github\Kibo-RPC_6th\assets"  # 輸入圖片路徑
 image_folder = os.path.join(base_folder, "item_template_images")
 
-# 確保輸出資料夾存在
-os.makedirs(image_folder, exist_ok=True)
-os.makedirs(os.path.join(base_folder, "rotated_images"), exist_ok=True)
+# 設定輸出路徑 - 用於儲存處理後的圖片
+output_base = r"D:\Users\lucas\LocalFiles\Github\Kibo-RPC_6th\src\images_rotate\rotated_images"  # 輸出圖片路徑
 
-# 為所有圖片生成不同角度的旋轉版本
-image_types = ["coin", "compass", "coral", "crystal", "diamond", 
-               "emerald", "fossil", "key", "letter", "shell","treasure_box"]
+# 定義物品類型列表
+image_types = ["coin", "compass", "coral", "crystal", "diamond", "emerald", "fossil", "key", "letter", "shell", "treasure_box"]
 
-# 主要圖片旋轉處理
-for i in range(0, 10):
-    image_name = image_types[i]
-    image_path = os.path.join(image_folder, f"{image_name}.png")
-    image = Image.open(image_path).convert("RGBA")
+def setup_folders():
+    """創建必要的資料夾"""
+    # 確保輸入資料夾存在
+    os.makedirs(image_folder, exist_ok=True)
     
-    print(f"處理圖片: {image_name}.png")
+    # 確保輸出基礎資料夾存在
+    os.makedirs(output_base, exist_ok=True)
     
-    # 每5度旋轉一次，從0度到355度
-    for degree in range(0, 331, 30):
-        # 旋轉圖片
-        rotated_image = image.rotate(degree, expand=True, fillcolor=(0, 0, 0, 0))
-        
-        # 為每個角度生成5張圖片
-        for k in range(1, 6):
-            output_path = os.path.join(base_folder, "rotated_images", f"{image_name}_{degree}_{k}.png")
-            rotated_image.save(output_path)
-    
-    print(f"完成 {image_name} 的所有旋轉")
+    # 為每種物品類型創建資料夾
+    for image_type in image_types:
+        item_folder = os.path.join(output_base, image_type)
+        os.makedirs(item_folder, exist_ok=True)
 
-# 生成原始圖片的副本
-for i in range(0, 10):
-    image_name = image_types[i]
-    image_path = os.path.join(image_folder, f"{image_name}.png")
-    image = Image.open(image_path)
+def resize_image(image, scale):
+    """縮放圖片到指定比例"""
+    width, height = image.size
+    new_size = (int(width * scale), int(height * scale))
+    return image.resize(new_size, Image.LANCZOS)
+
+def rotate_and_save(image, image_name, scale, degree):
+    """旋轉指定角度的圖片並保存"""
+    output_folder = os.path.join(output_base, image_name)
+    scale_percent = int(scale * 100)
     
-    # 旋轉圖片(0度，等同於原圖)
-    rotated_image = image.rotate(0, expand=True)
+    rotated_image = image.rotate(degree, expand=True, fillcolor=(0, 0, 0, 0))
     
-    # 為每個原始圖片生成5個副本
+    # 為每個角度生成5張圖片
     for k in range(1, 6):
-        output_path = os.path.join(base_folder, f"{image_name}_{k}.png")
+        output_path = os.path.join(output_folder, f"{image_name}_{scale_percent}p_{degree}_{k}.png")
         rotated_image.save(output_path)
+
+def create_copies(image_name):
+    """為原始圖片創建多個副本"""
+    try:
+        image_path = os.path.join(image_folder, f"{image_name}.png")
+        image = Image.open(image_path)
+        output_folder = os.path.join(output_base, image_name)
+        
+        for k in range(1, 6):
+            output_path = os.path.join(output_folder, f"{image_name}_original_{k}.png")
+            image.save(output_path)
+            
+        print(f"已為 {image_name} 生成5個副本")
+    except Exception as e:
+        print(f"生成 {image_name} 副本時發生錯誤: {e}")
+
+def process_image(image_name):
+    """處理單個圖片的所有操作"""
+    try:
+        image_path = os.path.join(image_folder, f"{image_name}.png")
+        original_image = Image.open(image_path).convert("RGBA")
+        width, height = original_image.size
+        print(f"處理圖片: {image_name}.png (原始尺寸: {width}x{height})")
+        
+        # 縮放圖片到不同比例
+        image_100 = original_image  # 原始尺寸 (100%)
+        image_30 = resize_image(original_image, 0.3)
+        image_50 = resize_image(original_image, 0.5)
+        image_80 = resize_image(original_image, 0.8)
+        
+        # 對各種比例的圖片進行旋轉處理
+        scales = {1.0: image_100, 0.3: image_30, 0.5: image_50, 0.8: image_80}
+        
+        for scale, image in scales.items():
+            scale_percent = int(scale * 100)
+            print(f"  開始處理 {image_name} 的 {scale_percent}% 版本旋轉...")
+            
+            for degree in range(0, 356, 5):
+                rotate_and_save(image, image_name, scale, degree)
+        
+        print(f"完成 {image_name} 的所有縮放和旋轉")
+        
+    except Exception as e:
+        print(f"處理 {image_name} 時發生錯誤: {e}")
+
+def main():
+    """主函數"""
+    # 設置資料夾
+    setup_folders()
     
-    print(f"已為 {image_name} 生成5個副本")
+    # 處理每一個圖片
+    for image_name in image_types:
+        process_image(image_name)
+        # 創建原始圖片的副本
+        create_copies(image_name)
+    
+    print("所有圖片處理完成！")
+
+if __name__ == "__main__":
+    main()
