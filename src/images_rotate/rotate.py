@@ -42,21 +42,6 @@ def rotate_and_save(image, image_name, scale, degree):
         output_path = os.path.join(output_folder, f"{image_name}_{scale_percent}p_{degree}_{k}.png")
         rotated_image.save(output_path)
 
-def create_copies(image_name):
-    """為原始圖片創建多個副本"""
-    try:
-        image_path = os.path.join(image_folder, f"{image_name}.png")
-        image = Image.open(image_path)
-        output_folder = os.path.join(output_base, image_name)
-        
-        for k in range(1, 6):
-            output_path = os.path.join(output_folder, f"{image_name}_original_{k}.png")
-            image.save(output_path)
-            
-        print(f"已為 {image_name} 生成5個副本")
-    except Exception as e:
-        print(f"生成 {image_name} 副本時發生錯誤: {e}")
-
 def process_image(image_name):
     """處理單個圖片的所有操作"""
     try:
@@ -66,10 +51,10 @@ def process_image(image_name):
         print(f"處理圖片: {image_name}.png (原始尺寸: {width}x{height})")
         
         # 縮放圖片到不同比例
-        image_100 = original_image  # 原始尺寸 (100%)
         image_30 = resize_image(original_image, 0.3)
         image_50 = resize_image(original_image, 0.5)
         image_80 = resize_image(original_image, 0.8)
+        image_100 = original_image  # 原始尺寸 (100%)
         
         # 對各種比例的圖片進行旋轉處理
         scales = {1.0: image_100, 0.3: image_30, 0.5: image_50, 0.8: image_80}
@@ -78,7 +63,7 @@ def process_image(image_name):
             scale_percent = int(scale * 100)
             print(f"  開始處理 {image_name} 的 {scale_percent}% 版本旋轉...")
             
-            for degree in range(0, 356, 5):
+            for degree in range(0, 331, 30):
                 rotate_and_save(image, image_name, scale, degree)
         
         print(f"完成 {image_name} 的所有縮放和旋轉")
@@ -94,8 +79,6 @@ def main():
     # 處理每一個圖片
     for image_name in image_types:
         process_image(image_name)
-        # 創建原始圖片的副本
-        create_copies(image_name)
     
     print("所有圖片處理完成！")
 
