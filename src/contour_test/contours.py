@@ -1,3 +1,5 @@
+# https://docs.opencv.org/3.4/dd/d49/tutorial_py_contour_features.html
+# https://docs.opencv.org/3.4/d9/d8b/tutorial_py_contours_hierarchy.html
 # import numpy as np
 import cv2 as cv
 import imutils
