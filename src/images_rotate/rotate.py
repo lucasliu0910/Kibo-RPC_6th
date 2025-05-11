@@ -2,11 +2,13 @@ import os
 from PIL import Image
 
 # 設定路徑 - 使用原始字串 r 前綴
-base_folder = r"/Users/lucas/Documents/GitHub/Kibo-RPC_6th/assets"  # 輸入圖片路徑
+# base_folder = r"/Users/lucas/Documents/GitHub/Kibo-RPC_6th/assets"  # 輸入圖片路徑
+base_folder = r"../../assets"  # 輸入圖片路徑
 image_folder = os.path.join(base_folder, "item_template_images")
 
 # 設定輸出路徑 - 用於儲存處理後的圖片
-output_base = r"/Users/lucas/Documents/GitHub/Kibo-RPC_6th/src/images_rotate/rotated_images"  # 輸出圖片路徑
+# output_base = r"/Users/lucas/Documents/GitHub/Kibo-RPC_6th/src/images_rotate/rotated_images"  # 輸出圖片路徑
+output_base = r"./rotated_images"  # 輸出圖片路徑
 
 # 定義物品類型列表
 image_types = ["coin", "compass", "coral", "crystal", "diamond", "emerald", "fossil", "key", "letter", "shell", "treasure_box"]
