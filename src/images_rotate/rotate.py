@@ -2,11 +2,11 @@ import os
 from PIL import Image
 
 # 設定路徑 - 使用原始字串 r 前綴
-base_folder = r"D:\Users\lucas\LocalFiles\Github\Kibo-RPC_6th\assets"  # 輸入圖片路徑
+base_folder = r"/Users/lucas/Documents/GitHub/Kibo-RPC_6th/assets"  # 輸入圖片路徑
 image_folder = os.path.join(base_folder, "item_template_images")
 
 # 設定輸出路徑 - 用於儲存處理後的圖片
-output_base = r"D:\Users\lucas\LocalFiles\Github\Kibo-RPC_6th\src\images_rotate\rotated_images"  # 輸出圖片路徑
+output_base = r"/Users/lucas/Documents/GitHub/Kibo-RPC_6th/src/images_rotate/rotated_images"  # 輸出圖片路徑
 
 # 定義物品類型列表
 image_types = ["coin", "compass", "coral", "crystal", "diamond", "emerald", "fossil", "key", "letter", "shell", "treasure_box"]
@@ -24,11 +24,31 @@ def setup_folders():
         item_folder = os.path.join(output_base, image_type)
         os.makedirs(item_folder, exist_ok=True)
 
-def resize_image(image, scale):
-    """縮放圖片到指定比例"""
+def create_background_image(size):
+    """創建白色背景圖片"""
+    return Image.new('RGBA', size, (255, 255, 255, 255))
+
+def resize_image(image, scale, original_size):
+    """縮放圖片到指定比例並放置在白色背景上"""
+    # 計算縮放後的新尺寸
     width, height = image.size
-    new_size = (int(width * scale), int(height * scale))
-    return image.resize(new_size, Image.LANCZOS)
+    new_width = int(width * scale)
+    new_height = int(height * scale)
+    
+    # 縮放圖片
+    resized_image = image.resize((new_width, new_height), Image.LANCZOS)
+    
+    # 創建與原始圖片相同大小的白色背景
+    background = create_background_image(original_size)
+    
+    # 計算居中位置
+    x = (original_size[0] - new_width) // 2
+    y = (original_size[1] - new_height) // 2
+    
+    # 將縮放後的圖片貼到背景上
+    background.paste(resized_image, (x, y), resized_image)
+    
+    return background
 
 def rotate_and_save(image, image_name, scale, degree):
     """旋轉指定角度的圖片並保存"""
@@ -47,13 +67,13 @@ def process_image(image_name):
     try:
         image_path = os.path.join(image_folder, f"{image_name}.png")
         original_image = Image.open(image_path).convert("RGBA")
-        width, height = original_image.size
-        print(f"處理圖片: {image_name}.png (原始尺寸: {width}x{height})")
+        original_size = original_image.size
+        print(f"處理圖片: {image_name}.png (原始尺寸: {original_size[0]}x{original_size[1]})")
         
         # 縮放圖片到不同比例
-        image_30 = resize_image(original_image, 0.3)
-        image_50 = resize_image(original_image, 0.5)
-        image_80 = resize_image(original_image, 0.8)
+        image_30 = resize_image(original_image, 0.3, original_size)
+        image_50 = resize_image(original_image, 0.5, original_size)
+        image_80 = resize_image(original_image, 0.8, original_size)
         image_100 = original_image  # 原始尺寸 (100%)
         
         # 對各種比例的圖片進行旋轉處理
