@@ -68,7 +68,8 @@ def process_image(image_name):
     """處理單個圖片的所有操作"""
     try:
         image_path = os.path.join(image_folder, f"{image_name}.png")
-        original_image = Image.open(image_path).convert("RGBA")
+        img = Image.open(image_path).convert("RGBA")
+        original_image = img.resize((512,512), Image.LANCZOS) #TensorFlow Lite image input size
         original_size = original_image.size
         print(f"處理圖片: {image_name}.png (原始尺寸: {original_size[0]}x{original_size[1]})")
         
