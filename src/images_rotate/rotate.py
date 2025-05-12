@@ -58,6 +58,13 @@ def rotate_and_save(image, image_name, scale, degree):
     scale_percent = int(scale * 100)
     
     rotated_image = image.rotate(degree, expand=True, fillcolor=(0, 0, 0, 0))
+
+    width, height = rotated_image.size
+    left = (width-512)/2
+    top = (height-512)/2
+    right = width - left
+    bottom = height - top
+    rotated_image=rotated_image.crop((left, top, right, bottom))  # 確保圖片大小為512x512
     
     # 為每個角度生成5張圖片
     for k in range(1, 6):
