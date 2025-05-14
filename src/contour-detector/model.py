@@ -1,5 +1,6 @@
 import os
 import json
+import tempfile
 from typing import List, Dict, Optional
 from label_studio_ml.model import LabelStudioMLBase
 from label_studio_ml.utils import get_image_size, \
@@ -11,28 +12,50 @@ class NewModel(LabelStudioMLBase):
                  checkpoint_file=None,
                  image_dir=None,
                  labels_file=None, score_threshold=0.3, device='cpu', **kwargs):
+                     
         super(NewModel, self).__init__(**kwargs)
-        guessed_label = 'treasure_box'
-        try:
-            self.set('model_version', 'contour-detector')
-            self.set('my_data', guessed_label)
-        except:
-            self.model_version = 'contour-detector'
-            self.my_data = guessed_label
-            
+        
+        self.model_dir = '.'
         self.hostname = os.environ['LABEL_STUDIO_HOST']
         self.access_token = os.environ['LABEL_STUDIO_API_KEY']
         self.score_thresh = score_threshold
+        
+        model_version = 'contour-detector'
+        
+        try:
+            filename=tempfile.gettempdir()+'/'+model_version+'.json'
+            with open(filename, 'r') as openfile:
+                # Reading from json file
+                default_label = json.load(openfile)
+        except:
+            default_label = 'coin'
+        
+        try:
+            self.set('model_version', model_version)
+            self.set('my_data', default_label)
             
-        # if not self.get('parsed_label_config'):
-            # self.set('parsed_label_config',"{}")
-        if not self.parsed_label_config:
-            self.parsed_label_config={}    
+            if not self.get('label_config'):
+                self.set('label_config',"{}")
+            
+            if not self.get('parsed_label_config'):
+                self.set('parsed_label_config',"{}")
+        except:
+            self.model_version = model_version
+            self.my_data = default_label
+            
+            if not self.label_config:
+                self.label_config={}   
+            
+            if not self.parsed_label_config:
+                self.parsed_label_config={}   
+        
+        # print("!!!breakpoint!!!")
+        # breakpoint() 
         
         if len(self.parsed_label_config)==1:
             self.from_name, self.to_name, self.value, self.labels_in_config = get_single_tag_keys(
                 self.parsed_label_config, 'RectangleLabels', 'Image')
-            schema = list(self.parsed_label_config.values())[0]
+            # schema = list(self.parsed_label_config.values())[0]
             self.labels_in_config = set(self.labels_in_config)
 
         # print("=====")
@@ -123,29 +146,46 @@ class NewModel(LabelStudioMLBase):
 
         # use cache to retrieve the data from the previous fit() runs
         try:
-            old_data = self.get('my_data')
             old_model_version = self.get('model_version')
+            old_data = self.get('my_data')
         except:
-            old_data = self.my_data
             old_model_version = self.model_version
-        print(f'Old data: {old_data}')
+            old_data = self.my_data
+            
         print(f'Old model version: {old_model_version}')
+        print(f'Old data: {old_data}')
 
+        # print("!!!breakpoint!!!")
+        # breakpoint()
+        
         # store new data to the cache
+        # model_version = None
+        # my_data = None
         # self.set('my_data', 'my_new_data_value')
         # self.set('model_version', 'my_new_model_version')
         try:
-            my_data = json.dumps(data['my_data'])
-            if my_data: self.set('my_data', my_data)
+            model_version = data['project']['model_version']
+            if model_version: self.set('model_version', model_version)
         except:
             pass
             
         try:
-            print(f'New data: {self.get("my_data")}')
-            print(f'New model version: {self.get("model_version")}')
+            my_data = data['project']['my_data']
+            if my_data: 
+                self.set('my_data', my_data)
+                
+                filename=tempfile.gettempdir()+'/'+old_model_version+'.json'
+                with open(filename, "w") as outfile:
+                    outfile.write(json.dumps(my_data, indent=4))
         except:
-            print(f'New data: {self.my_data}')
+            pass
+            
+        try:
+            print(f'New model version: {self.get("model_version")}')
+            print(f'New data: {self.get("my_data")}')
+        except:
             print(f'New model version: {self.model_version}')
+            print(f'New data: {self.my_data}')
 
         print('fit() completed successfully.')
 
