@@ -30,6 +30,17 @@ def create_background_image(size):
     """創建白色背景圖片"""
     return Image.new('RGBA', size, (255, 255, 255, 255))
 
+def paste_image_on_background(image, background):
+    """將圖片貼到背景上"""
+    # 計算居中位置
+    x = (background.width - image.width) // 2
+    y = (background.height - image.height) // 2
+    
+    # 將圖片貼到背景上
+    background.paste(image, (x, y), image)
+    
+    return background
+
 def resize_image(image, scale, original_size):
     """縮放圖片到指定比例並放置在白色背景上"""
     # 計算縮放後的新尺寸
@@ -40,17 +51,18 @@ def resize_image(image, scale, original_size):
     # 縮放圖片
     resized_image = image.resize((new_width, new_height), Image.LANCZOS)
     
-    # 創建與原始圖片相同大小的白色背景
-    background = create_background_image(original_size)
+    # # 創建與原始圖片相同大小的白色背景
+    # background = create_background_image(original_size)
     
-    # 計算居中位置
-    x = (original_size[0] - new_width) // 2
-    y = (original_size[1] - new_height) // 2
+    # # 計算居中位置
+    # x = (original_size[0] - new_width) // 2
+    # y = (original_size[1] - new_height) // 2
     
-    # 將縮放後的圖片貼到背景上
-    background.paste(resized_image, (x, y), resized_image)
+    # # 將縮放後的圖片貼到背景上
+    # background.paste(resized_image, (x, y), resized_image)
     
-    return background
+    # return background
+    return resized_image
 
 def rotate_and_save(image, image_name, scale, degree):
     """旋轉指定角度的圖片並保存"""
@@ -66,6 +78,8 @@ def rotate_and_save(image, image_name, scale, degree):
     bottom = height - top
     rotated_image=rotated_image.crop((left, top, right, bottom))  # 確保圖片大小為512x512
     
+    rotated_image = paste_image_on_background(rotated_image, create_background_image((512, 512)))
+
     # 為每個角度生成5張圖片
     for k in range(1, 6):
         output_path = os.path.join(output_folder, f"{image_name}_{scale_percent}p_{degree}_{k}.png")
