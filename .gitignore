@@ -1,0 +1,9 @@
+/src/images_rotate/rotated_images
+src/contour_test/data/images/contours.png
+venv/
+/training-docker/data
+/training/data
+.DS_Store
+**/.DS_Store
+.env
+**/.env
