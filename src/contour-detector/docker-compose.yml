@@ -6,6 +6,8 @@ services:
     image: humansignal/ml-backend:v0
     build: .
     restart: always
+    env_file:
+      - .env
     environment:
       # - MODEL_DIR=/data/models
       - MODEL_DIR=/app
@@ -14,6 +16,5 @@ services:
       - LOG_LEVEL=DEBUG
       - ANY=PARAMETER
       - LABEL_STUDIO_HOST=http://label.lucasliu.net
-      - LABEL_STUDIO_API_KEY=b7e78c338c72f337a00df7633d81a64138f7eee8
     ports:
       - "9090:9090"
