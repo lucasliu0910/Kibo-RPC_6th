@@ -57,10 +57,10 @@ def findHMatrix(pts1, pts2):
 
 
 def show_image(img, title, width):
-    ratio = img.shape[1] / img.shape[0]
+    ratio =  img.shape[0] / img.shape[1]
 
     cv2.namedWindow(title, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(title, int(width * ratio), width)
+    cv2.resizeWindow(title, width, int(width * ratio))
     cv2.imshow(title, img)
 
 
