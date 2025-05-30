@@ -60,8 +60,6 @@ class PaperCropper:
         detector = cv2.aruco.ArucoDetector(self.ar_dictionary, self.detector_params)
         corners, ids, _ = detector.detectMarkers(gray_img)
         
-        
-        
         if area not in self.area_tag_id:
             print(f"Unknown area: {area}")
             return self._default_crop(gray_img, area)
@@ -116,8 +114,10 @@ class PaperCropper:
             
             paper_bottom_right = paper_top_right + paper_height_ratio * marker_size * y_vec_norm
             
-            all_points = np.array([paper_top_left, paper_top_right, 
-                                 paper_bottom_left, paper_bottom_right])
+            all_points = np.array([paper_top_left, 
+                                   paper_top_right, 
+                                   paper_bottom_left, 
+                                   paper_bottom_right])
             
             min_x = np.min(all_points[:, 0])
             max_x = np.max(all_points[:, 0])
@@ -136,7 +136,9 @@ class PaperCropper:
                 print(f"Wrong cropping area, use default. Area: {area}")
                 return self._default_crop(gray_img, area)
             
-            cropped_img = gray_img[start_y:end_y, start_x:end_x]
+            # cropped_img = gray_img[start_y:end_y, start_x:end_x]
+            paper_corners = [paper_top_left, paper_top_right, paper_bottom_right, paper_bottom_left]
+            cropped_img = self.get_warp_image(gray_img, paper_corners)
             
             if self.crop_img_counter < 10:
                 debug_img = undistorted_img.copy()
@@ -160,12 +162,14 @@ class PaperCropper:
             self.save_debug_image(cropped_img, f"paper_crop_{area}_{self.crop_img_counter}.jpg")
             self.crop_img_counter += 1
             
+            self.show_image(cropped_img, f"paper id {self.area_tag_id[area]} ", 512)
+
             return cropped_img
             
         else:
             print(f"Unable to find tag of '{area}' (ID: {target_id})")
             return self._default_crop(gray_img, area)
-    
+
     def _default_crop(self, gray_img: np.ndarray, area: str) -> np.ndarray:
         img_height, img_width = gray_img.shape
         
@@ -184,12 +188,149 @@ class PaperCropper:
         self.crop_img_counter += 1
         
         return cropped_img
+    
+    def show_image(self, image: np.ndarray, title: str = "Image", width=720):
+        ratio =  image.shape[0] / image.shape[1]
+        
+        cv2.namedWindow(title, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(title, width, int(width * ratio))
+        cv2.imshow(title, image)
 
+    def get_warp_image(self, image, corners):
+        
+        (topLeft, topRight, bottomRight, bottomLeft) = corners
+
+        # convert each of the (x, y)-coordinate pairs to integers
+        topRight = (int(topRight[0]), int(topRight[1]))
+        bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+        bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+        topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+        w = int(abs(topRight[0] - topLeft[0]))
+        h = int(abs(topLeft[1] - bottomLeft[1]))
+
+        p1 = np.float32([topLeft,topRight,bottomRight,bottomLeft])
+        p2 = np.float32([[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]])
+        m = cv2.getPerspectiveTransform(p1,p2)
+
+        # print(f"Warping: topLeft {topLeft} topRight {topRight} bottomRight {bottomRight} bottomLeft {bottomLeft}")
+
+        warped_img = cv2.warpPerspective(image, m, (w - 1, h - 1))
+
+        return warped_img
+    
+    def draw_corners(self, image, corners):
+        (topLeft, topRight, bottomRight, bottomLeft) = corners
+
+        # convert each of the (x, y)-coordinate pairs to integers
+        topRight = (int(topRight[0]), int(topRight[1]))
+        bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+        bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+        topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+        cv2.putText(image, "1", topLeft, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+        cv2.putText(image, "2", topRight, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+        cv2.putText(image, "3", bottomRight, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+        cv2.putText(image, "4", bottomLeft, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+
+        cv2.circle(image, topLeft, 3, (255, 0, 0), 2)
+        cv2.circle(image, topRight, 3, (255, 0, 0), 2)
+        cv2.circle(image, bottomRight, 3, (255, 0, 0), 2)
+        cv2.circle(image, bottomLeft, 3, (255, 0, 0), 2)
+        
+    def get_paper_corners(self, marker_corners, shape):
+        top_left = marker_corners[0]
+        top_right = marker_corners[1]
+        bottom_right = marker_corners[2]
+        bottom_left = marker_corners[3]
+
+        paper_width_ratio = 27.0 / 4.5
+        paper_height_ratio = 15.0 / 4.5
+        
+        x_vec = top_right - top_left
+        y_vec = bottom_left - top_left
+        
+        x_vec_length = np.linalg.norm(x_vec)
+        y_vec_length = np.linalg.norm(y_vec)
+        
+        x_vec_norm = x_vec / x_vec_length
+        y_vec_norm = y_vec / y_vec_length
+        
+        marker_center = np.mean(marker_corners, axis=0)
+        
+        marker_size = (x_vec_length + y_vec_length) / 2
+        
+        scale = marker_size / 4.5
+        
+        tag_to_paper_left_distance = 20.0 + 2.25
+        tag_to_paper_top_distance = 3.75
+        
+        paper_top_left = (marker_center - 
+                        tag_to_paper_left_distance * scale * x_vec_norm - 
+                        tag_to_paper_top_distance * scale * y_vec_norm)
+        
+        paper_top_right = paper_top_left + paper_width_ratio * marker_size * x_vec_norm
+        
+        paper_bottom_left = paper_top_left + paper_height_ratio * marker_size * y_vec_norm
+        
+        paper_bottom_right = paper_top_right + paper_height_ratio * marker_size * y_vec_norm
+        
+        all_points = np.array([paper_top_left, paper_top_right, 
+                                paper_bottom_left, paper_bottom_right])
+        
+        min_x = np.min(all_points[:, 0])
+        max_x = np.max(all_points[:, 0])
+        min_y = np.min(all_points[:, 1])
+        max_y = np.max(all_points[:, 1])
+        
+        start_x = max(0, int(np.floor(min_x)))
+        start_y = max(0, int(np.floor(min_y)))
+        end_x = min(shape[1] - 1, int(np.ceil(max_x)))
+        end_y = min(shape[0] - 1, int(np.ceil(max_y)))
+        
+        width = end_x - start_x
+        height = end_y - start_y
+        
+        if width <= 0 or height <= 0:
+            print(f"Wrong cropping area, use default. Area: {area}")
+            return marker_corners
+        
+        return [paper_top_left, paper_top_right, paper_bottom_right, paper_bottom_left]
+
+    def draw_paper_markers(self, image):
+        undistorted_img = self.undistort(image)
+        convas_img = undistorted_img.copy()
+        
+        self.detector_params.minMarkerPerimeterRate = 0.01
+        self.detector_params.maxMarkerPerimeterRate = 0.5
+
+        detector = cv2.aruco.ArucoDetector(self.ar_dictionary, self.detector_params)
+        corners, ids, _ = detector.detectMarkers(undistorted_img)
+        
+        cv2.aruco.drawDetectedMarkers(convas_img, corners, ids)        
+        
+        if len(corners) > 0:
+            ids = ids.flatten()
+            for markerCorner, markerID in zip(corners, ids):
+                corners = markerCorner.reshape((4, 2))
+                (topLeft, topRight, bottomRight, bottomLeft) = corners
+
+                # convert each of the (x, y)-coordinate pairs to integers
+                topRight = (int(topRight[0]), int(topRight[1]))
+                bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+                bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+                topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+                paper_corners = self.get_paper_corners(corners, undistorted_img.shape)
+                self.draw_corners(convas_img, paper_corners)
+
+        self.show_image(convas_img, f"Markers", 720)
 
 def main():
     cropper = PaperCropper()
     
-    test_image_path = "Sample4.jpg"
+    # test_image_path = "Sample4.jpg"
+    test_image_path = "../contour_test/data/images/482585764_1455590368759521_6647519779772489171_n.png"
     
     if not os.path.exists(test_image_path):
         print(f"Image not exists: {test_image_path}")
@@ -212,7 +353,11 @@ def main():
             print(f"Cropping finished, size: {cropped.shape}")
         except Exception as e:
             print(f"Failed to crop area '{area}': {e}")
-    
+
+    cropper.draw_paper_markers(image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
     print("\nComplete!")
 
 
