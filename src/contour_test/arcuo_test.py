@@ -93,15 +93,15 @@ def drawCorners(image, corners):
     bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
     topLeft = (int(topLeft[0]), int(topLeft[1]))
 
-    cv2.putText(image, "TL", topLeft, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-    cv2.putText(image, "TR", topRight, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-    cv2.putText(image, "BR", bottomRight, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-    cv2.putText(image, "BL", bottomLeft, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+    cv2.putText(image, "1", topLeft, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+    cv2.putText(image, "2", topRight, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+    cv2.putText(image, "3", bottomRight, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+    cv2.putText(image, "4", bottomLeft, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
-    cv2.circle(image, topLeft, 5, (255, 0, 0), 2)
-    cv2.circle(image, topRight, 5, (255, 0, 0), 2)
-    cv2.circle(image, bottomRight, 5, (255, 0, 0), 2)
-    cv2.circle(image, bottomLeft, 5, (255, 0, 0), 2)
+    cv2.circle(image, topLeft, 3, (255, 0, 0), 2)
+    cv2.circle(image, topRight, 3, (255, 0, 0), 2)
+    cv2.circle(image, bottomRight, 3, (255, 0, 0), 2)
+    cv2.circle(image, bottomLeft, 3, (255, 0, 0), 2)
 
 def get_warp_image_0(image, pts1, pts2):
     w = int(abs(topRight[0] - topLeft[0]))
