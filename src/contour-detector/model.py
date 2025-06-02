@@ -6,6 +6,8 @@ from label_studio_ml.model import LabelStudioMLBase
 from label_studio_ml.utils import get_image_size, \
     get_single_tag_keys, DATA_UNDEFINED_NAME
 
+import cv2
+import numpy as np
 
 class NewModel(LabelStudioMLBase):
     def __init__(self, config_file=None,
@@ -90,7 +92,8 @@ class NewModel(LabelStudioMLBase):
         # Label config: {self.labels_in_config}
         # ''')
         
-        model_results = self.bbox_detector(image_path, self.labels_in_config)
+        # model_results = self.bbox_detector(image_path, self.labels_in_config)
+        model_results = self.bbox_detector_iou_area(image_path)
         
         results = []
         all_scores = []
@@ -278,3 +281,145 @@ class NewModel(LabelStudioMLBase):
                 results.append(item)
         
         return results
+
+
+    def bbox_detector_iou_area(self, image_path):
+        from bbox_detector import get_marker_corners, get_paper_corners, get_corners_bounding_box, get_mask, get_contours_tree, get_corners_area
+
+        # print(f"bbox_detector_iou_area| processing file {image_path}")
+
+        raw_image = cv2.imread(image_path)
+
+        # image=undistort(raw_image)
+        image=raw_image.copy()
+
+        corners, ids = get_marker_corners(image)
+        if len(corners) == 0:
+            image=raw_image.copy()
+            corners, ids = get_marker_corners(image)
+
+        # image2=image.copy()
+        # image3=image.copy()
+        # image4=image.copy()
+        # image5=image.copy()
+
+        results = []
+
+        if len(corners) > 0:
+            ids = ids.flatten()
+            for markerCorner, markerID in zip(corners, ids):
+                corners = markerCorner.reshape((4, 2))
+                # (topLeft, topRight, bottomRight, bottomLeft) = corners
+
+                paper_corners = get_paper_corners(corners, image.shape)
+                paper_dimensions = get_corners_bounding_box(paper_corners)
+        
+                mask_img = get_mask(image.shape, np.array(paper_corners).astype(int))
+                mask_img = cv2.cvtColor(mask_img, cv2.COLOR_BGR2GRAY)
+                # show_image(mask_img, f"ID {markerID} mask", 720)
+
+                paper_img = cv2.bitwise_and(image, image, mask=mask_img)
+                # show_image(paper_img, f"ID {markerID} paper_img", 720)
+
+                contours, hierarchys, hasParents = get_contours_tree(paper_img)
+
+                area = get_corners_area(corners)
+                
+                self.detect_contours_by_iou_minum_area(results, paper_dimensions, contours, 0.7, area)
+
+        else:
+            paper_img = image.copy()
+            paper_dimensions = (0, 0, paper_img.shape[1], paper_img.shape[0])
+
+            # contours, hierarchys, hasParents = get_contours_onpaper(paper_img)
+            contours, hierarchys, hasParents = get_contours_tree(paper_img)
+
+            area = paper_img.shape[0] * paper_img.shape[1] / 4
+            
+            self.detect_contours_by_iou_minum_area(results, paper_dimensions, contours, 0.7, area)
+        
+        return results
+
+    def detect_contours_by_iou_minum_area(self, results, paper_dimensions, contours, iou_threshold=0.7, min_area=100):
+        from bbox_detector import find_parent_by_iou
+
+        # print(f"draw_contours_by_iou_minum_area| paper_dimensions: {paper_dimensions}")
+        cons = []
+        # papar_width = img.shape[1]
+        # papar_height = img.shape[0]
+        for i in range(len(contours)):
+            cnt = contours[i]
+            x, y, w, h = cv2.boundingRect(cnt)
+            w_ratio = w / paper_dimensions[2]
+            h_ratio = h / paper_dimensions[3]
+            area = cv2.contourArea(cnt)
+            area_ratio = area / min_area
+            # print(f"draw_contours_by_iou: Contour {i}, bounding box: ({x}, {y}, {w}, {h}), ratio: {w/paper_dimensions[2]:.02f} {h/paper_dimensions[3]:.02f}")
+            if h_ratio < 0.85 and w_ratio < 0.85 and area_ratio > 0.145:
+                cons.append(cnt)
+
+        contours = cons
+        # for i in range(len(contours)):
+        #     cnt = contours[i]
+        #     x, y, w, h = cv2.boundingRect(cnt)
+        #     print(f"draw_contours_by_iou: Contour {i}, bounding box: ({x}, {y}, {w}, {h})")
+
+        # 找出父輪廓
+        parent_indices = find_parent_by_iou(contours, iou_threshold)
+        # print(f"draw_contours_by_iou| Found {len(parent_indices)} parent contours with IOU threshold {iou_threshold}")
+        # print(f"parent_indices {parent_indices}")
+
+        # results = []
+        # 繪製父輪廓
+        for id in parent_indices:
+            cnt = contours[id]
+            x, y, w, h = cv2.boundingRect(cnt)
+            # cv2.rectangle(img, (x, y), (x + w, y + h), red, 2)
+            
+            # 顯示輪廓資訊
+            area = cv2.contourArea(cnt)
+            area_ratio = area / min_area
+
+            # cv2.putText(img, f"{id}:{area:.0f}", (x+1, y - 10+1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, white, 2)
+            # cv2.putText(img, f"{id}:{area:.0f}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, blue, 2)
+            # draw_label(img, f"{id}:{area_ratio:.02f}", x, y-10, color=blue)
+
+            # print(f"draw_contours_by_iou_minum_area| Contour {id}, area_ratio {area_ratio:.03f}, bounding box: ({x}, {y}, {w}, {h})")
+
+            item = {}
+            bboxes = []
+            outlabels = []
+            scores = []
+            
+            # cnt = contours[childi]
+            x,y,w,h = cv2.boundingRect(cnt)
+            bbox = [x,y,w,h]
+            bboxes.append(bbox)
+            # outlabels.append(labels.pop())
+            # outlabels.append('coin')
+            try:
+                outlabels.append(self.get('my_data')) #guess a label
+            except:
+                outlabels.append(self.my_data) #guess a label
+            scores.append(100.0)
+            
+            # childi = hierarchy[childi][Hierarchy.Next.value]
+    
+            item['bboxes'] = bboxes
+            item['labels'] = outlabels
+            item['scores'] = scores
+            results.append(item)
+        
+        # show_image(img, f'draw_contours_by_iou_minum_area (threshold={iou_threshold} min_area={min_area:.0f})', 720)
+
+        # return results
+
+
+def main():
+    model = NewModel()
+    model.bbox_detector_iou_area('data/images/coin.png')
+    model.bbox_detector_iou_area('data/images/3c115d9c-8839-4ae8-9f3f-96d514dd5831.png')
+    model.bbox_detector_iou_area('data/images/482585764_1455590368759521_6647519779772489171_n.png')
+
+if __name__ == "__main__":
+    main()
