@@ -331,14 +331,14 @@ def main():
     # raw_image = cv2.imread('./data/images/468070fc-23e0-4034-90ae-ca86b39935b7.png')
     # raw_image = cv2.imread('./data/images/c07d7f1c-581c-4b12-9105-9a131705f785.png')
     # raw_image = cv2.imread('./data/images/482585764_1455590368759521_6647519779772489171_n.png')
-    # raw_image = cv2.imread('./data/images/490238254_1842446786580514_8292045078609051837_n.png') #??
+    raw_image = cv2.imread('./data/images/490238254_1842446786580514_8292045078609051837_n.png') #??
     # raw_image = cv2.imread('./data/images/490752727_3922194774688090_1916180895651358198_n.png')
     # raw_image = cv2.imread('./data/images/490797075_9500783306706076_2074756401633110199_n.png')
     # raw_image = cv2.imread('./data/images/490986346_1041000924540372_5860720053675956248_n.png')
-    raw_image = cv2.imread('./data/images/491008900_1819195295531383_8823035513900614833_n.png')
+    # raw_image = cv2.imread('./data/images/491008900_1819195295531383_8823035513900614833_n.png')
 
-    image = raw_image.copy()
-    # image = undistort(raw_image)
+    # image = raw_image.copy()
+    image = undistort(raw_image)
 
     img2=image.copy()
 
