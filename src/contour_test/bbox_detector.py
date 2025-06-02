@@ -34,7 +34,7 @@ def get_contours_tree(paper_img):
     # th2 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,11,2)
     # show_image(th2, f"MEAN thresh {cv2.countNonZero(th2)}", 720)
     th3 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
-    show_image(th3, f"GAUSSIAN thresh {cv2.countNonZero(th3)}", 720)
+    # show_image(th3, f"GAUSSIAN thresh {cv2.countNonZero(th3)}", 720)
 
     contours, hierarchys = cv2.findContours(th3, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -293,7 +293,7 @@ def draw_contours_by_iou_minum_area(img, paper_dimensions, contours, iou_thresho
         area = cv2.contourArea(cnt)
         area_ratio = area / min_area
         if debug: print(f"draw_contours_by_iou: Contour {i}, bounding box: ({x}, {y}, {w}, {h}), ratio: {w/paper_dimensions[2]:.02f} {h/paper_dimensions[3]:.02f}")
-        if h_ratio < 0.85 and w_ratio < 0.85 and area_ratio > 0.15:
+        if h_ratio < 0.85 and w_ratio < 0.85 and area_ratio > 0.145:
             if debug: print(f"draw_contours_by_iou: Contour {i} added as {len(cons)}")
             cons.append(cnt)
 
@@ -334,7 +334,7 @@ def draw_all_contours(img, contours):
         x, y, w, h = cv2.boundingRect(cnt)
         cv2.rectangle(img, (x, y), (x + w, y + h), red, 2)
         # cv2.putText(img, f"{i}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, blue, 2)
-        # if debug: draw_label(img, f"{i}", x, y-10, color=blue, scale=0.5)
+        if debug: draw_label(img, f"{i}", x, y-10, color=blue, scale=0.5)
         # if debug: print(f"draw_all_contours| Contour {i},x:{x},y:{y},w:{w},h:{h},area: {cv2.contourArea(cnt)}")
         i += 1
 
@@ -349,12 +349,15 @@ def draw_all_contours_by_minum_area(img, contours, min_area=100):
     for cnt in contours:
         area = cv2.contourArea(cnt)
         area_ratio = area / min_area
-        if area_ratio > 0.15:
+        if area_ratio > 0.145:
             x, y, w, h = cv2.boundingRect(cnt)
             cv2.rectangle(img, (x, y), (x + w, y + h), red, 2)
             # cv2.putText(img, f"{i}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, blue, 2)
             if debug: draw_label(img, f"{i}", x, y-10, color=blue, scale=0.5)
             if debug: print(f"draw_all_contours_by_minum_area| Contour {i},x:{x},y:{y},w:{w},h:{h},area: {cv2.contourArea(cnt)}")
+        else:
+            if debug: print(f"draw_all_contours_by_minum_area| Contour {i},x:{x},y:{y},w:{w},h:{h},area: {cv2.contourArea(cnt)}, area_ratio {area_ratio:.03f} too small")
+
         i += 1
 
     show_image(img, 'draw_all_contours_by_minum_area', 720)
@@ -400,7 +403,7 @@ def bbox_detector(filepath):
 
             area = get_corners_area(corners)
             
-            # draw_all_contours(image, contours)
+            draw_all_contours(image, contours)
             draw_all_contours_by_minum_area(image2, contours, area)
             draw_contours_by_iou_minum_area(image3, paper_dimensions, contours, 0.9, area)
 
@@ -413,7 +416,7 @@ def bbox_detector(filepath):
 
         area = paper_img.shape[0] * paper_img.shape[1] / 4
         
-        # draw_all_contours(image, contours)
+        draw_all_contours(image, contours)
         draw_all_contours_by_minum_area(image2, contours, area)
         draw_contours_by_iou_minum_area(image3, paper_dimensions, contours, 0.7, area)
     
@@ -444,11 +447,13 @@ def main():
         # ('./data/images/490986346_1041000924540372_5860720053675956248_n.png'),
         # ('./data/images/491008900_1819195295531383_8823035513900614833_n.png'),
 
-        ('./data/images/490987923_1592022961497407_7986231710546812446_n.png'),
-        ('./data/images/490989165_708828328475670_4674166509344416645_n.png'),
-        ('./data/images/490992385_3851723318307656_1266525493606877568_n.png'),
-        ('./data/images/491009695_1584506758911653_3678992970643951801_n.png'),
-        ('./data/images/491265658_1127518549177842_1858485317963113227_n.png'),
+        # ('./data/images/490987923_1592022961497407_7986231710546812446_n.png'),
+        # ('./data/images/490989165_708828328475670_4674166509344416645_n.png'),
+        # ('./data/images/490992385_3851723318307656_1266525493606877568_n.png'),
+        # ('./data/images/491009695_1584506758911653_3678992970643951801_n.png'),
+        # ('./data/images/491265658_1127518549177842_1858485317963113227_n.png'),
+
+        ('./data/images/bfda6e41-db92-49fb-9955-b0acd3212d3c.png'),
     ]
 
     for file in filelist:
