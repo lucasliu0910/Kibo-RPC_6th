@@ -15,6 +15,7 @@ red = (0,0,255)
 green = (0,255,0)
 blue = (255,0,0)
 
+debug=True
 
 def get_marker_corners(image):
     arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_1000)
@@ -30,8 +31,10 @@ def get_contours_tree(paper_img):
     gray = cv2.cvtColor(paper_img, cv2.COLOR_BGR2GRAY)
     # show_image(gray, f"gray {cv2.countNonZero(gray)}", 720)
 
+    # th2 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,11,2)
+    # show_image(th2, f"MEAN thresh {cv2.countNonZero(th2)}", 720)
     th3 = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
-    # show_image(th3, f"GAUSSIAN thresh {cv2.countNonZero(th3)}", 720)
+    show_image(th3, f"GAUSSIAN thresh {cv2.countNonZero(th3)}", 720)
 
     contours, hierarchys = cv2.findContours(th3, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -215,8 +218,8 @@ def calculate_contour_iou(cnt1, cnt2):
     # if area1 == 207553 or area2 == 207553:
     #     print(f"calculate_contour_iou: cnt1 area: {area1}, cnt2 area: {area2}, intersection_area: {intersection_area}, union_area: {union_area}")
 
-    if union_area == area1 or union_area == area2:
-        return 1.0
+    # if union_area == area1 or union_area == area2:
+    #     return 1.0
 
     # 計算 IOU
     if union_area == 0:
@@ -237,7 +240,7 @@ def find_parent_by_iou(contours, iou_threshold=0.7):
     
     # 比較所有輪廓對
     for i in range(n):
-        for j in range(n):
+        for j in range(i,n):
             if i != j:
                 # iou = contours_get_iou(contours[i], contours[j])
                 iou = calculate_contour_iou(contours[i], contours[j])
@@ -250,6 +253,7 @@ def find_parent_by_iou(contours, iou_threshold=0.7):
                         is_parent[i] = False
                     else:
                         is_parent[j] = False
+                    if debug: print(f"Contours {i} and {j} have IOU {iou:.2f}, area_i: {area_i:.0f}, area_j: {area_j:.0f}, is_parent[{i}]: {is_parent[i]}, is_parent[{j}]: {is_parent[j]}")
                     # if area_i < area_j:
                     #     is_parent[j] = True
                     # else:
@@ -288,8 +292,9 @@ def draw_contours_by_iou_minum_area(img, paper_dimensions, contours, iou_thresho
         h_ratio = h / paper_dimensions[3]
         area = cv2.contourArea(cnt)
         area_ratio = area / min_area
-        # print(f"draw_contours_by_iou: Contour {i}, bounding box: ({x}, {y}, {w}, {h}), ratio: {w/papar_width:.02f} {h/papar_height:.02f}")
+        if debug: print(f"draw_contours_by_iou: Contour {i}, bounding box: ({x}, {y}, {w}, {h}), ratio: {w/paper_dimensions[2]:.02f} {h/paper_dimensions[3]:.02f}")
         if h_ratio < 0.85 and w_ratio < 0.85 and area_ratio > 0.15:
+            if debug: print(f"draw_contours_by_iou: Contour {i} added as {len(cons)}")
             cons.append(cnt)
 
     contours = cons
@@ -301,7 +306,7 @@ def draw_contours_by_iou_minum_area(img, paper_dimensions, contours, iou_thresho
     # 找出父輪廓
     parent_indices = find_parent_by_iou(contours, iou_threshold)
     # print(f"draw_contours_by_iou| Found {len(parent_indices)} parent contours with IOU threshold {iou_threshold}")
-    print(f"parent_indices {parent_indices}")
+    if debug: print(f"parent_indices {parent_indices}")
 
     # 繪製父輪廓
     for id in parent_indices:
@@ -314,13 +319,50 @@ def draw_contours_by_iou_minum_area(img, paper_dimensions, contours, iou_thresho
         area_ratio = area / min_area
         # cv2.putText(img, f"{id}:{area:.0f}", (x+1, y - 10+1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, white, 2)
         # cv2.putText(img, f"{id}:{area:.0f}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, blue, 2)
-        draw_label(img, f"{id}:{area_ratio:.02f}", x, y-10, color=blue)
-        print(f"draw_contours_by_iou_minum_area| Contour {id}, area_ratio {area_ratio:.03f}")
+        draw_label(img, f"{id}:{area_ratio:.02f}", x, y-10, color=blue, scale=0.5)
+        if debug: print(f"draw_contours_by_iou_minum_area| Contour {id}, area_ratio {area_ratio:.03f}")
 
     show_image(img, f'draw_contours_by_iou_minum_area (threshold={iou_threshold} min_area={min_area:.0f})', 720)
 
 
+def draw_all_contours(img, contours):
+    # cnt = contours[1]
+    # x, y, w, h = cv2.boundingRect(cnt)
+    # cv2.rectangle(img, (x, y), (x + w, y + h), red, 2)
+    i = 0
+    for cnt in contours:
+        x, y, w, h = cv2.boundingRect(cnt)
+        cv2.rectangle(img, (x, y), (x + w, y + h), red, 2)
+        # cv2.putText(img, f"{i}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, blue, 2)
+        # if debug: draw_label(img, f"{i}", x, y-10, color=blue, scale=0.5)
+        # if debug: print(f"draw_all_contours| Contour {i},x:{x},y:{y},w:{w},h:{h},area: {cv2.contourArea(cnt)}")
+        i += 1
+
+    show_image(img, 'draw_all_contours', 720)
+
+
+def draw_all_contours_by_minum_area(img, contours, min_area=100):
+    # cnt = contours[1]
+    # x, y, w, h = cv2.boundingRect(cnt)
+    # cv2.rectangle(img, (x, y), (x + w, y + h), red, 2)
+    i = 0
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        area_ratio = area / min_area
+        if area_ratio > 0.15:
+            x, y, w, h = cv2.boundingRect(cnt)
+            cv2.rectangle(img, (x, y), (x + w, y + h), red, 2)
+            # cv2.putText(img, f"{i}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, blue, 2)
+            if debug: draw_label(img, f"{i}", x, y-10, color=blue, scale=0.5)
+            if debug: print(f"draw_all_contours_by_minum_area| Contour {i},x:{x},y:{y},w:{w},h:{h},area: {cv2.contourArea(cnt)}")
+        i += 1
+
+    show_image(img, 'draw_all_contours_by_minum_area', 720)
+
+
 def bbox_detector(filepath):
+    if debug: print(f"Processing file: {filepath}")
+
     raw_image = cv2.imread(filepath)
 
     # image=undistort(raw_image)
@@ -350,13 +392,17 @@ def bbox_detector(filepath):
             # show_image(mask_img, f"ID {markerID} mask", 720)
 
             paper_img = cv2.bitwise_and(image, image, mask=mask_img)
-            # show_image(paper_img, f"ID {markerID} paper_img", 720)
+            mask = np.zeros((paper_img.shape[0] + 2, paper_img.shape[1] + 2), np.uint8)
+            cv2.floodFill(paper_img, mask, (0,0), white)
+            show_image(paper_img, f"ID {markerID} paper_img", 720)
 
             contours, hierarchys, hasParents = get_contours_tree(paper_img)
 
             area = get_corners_area(corners)
             
-            draw_contours_by_iou_minum_area(image3, paper_dimensions, contours, 0.7, area)
+            # draw_all_contours(image, contours)
+            draw_all_contours_by_minum_area(image2, contours, area)
+            draw_contours_by_iou_minum_area(image3, paper_dimensions, contours, 0.9, area)
 
     else:
         paper_img = image.copy()
@@ -367,6 +413,8 @@ def bbox_detector(filepath):
 
         area = paper_img.shape[0] * paper_img.shape[1] / 4
         
+        # draw_all_contours(image, contours)
+        draw_all_contours_by_minum_area(image2, contours, area)
         draw_contours_by_iou_minum_area(image3, paper_dimensions, contours, 0.7, area)
     
     cv2.waitKey(0)
@@ -374,27 +422,33 @@ def bbox_detector(filepath):
 
 def main():
     filelist = [
-        ("../../assets/item_template_images/coin.png"),
-        ("../../assets/item_template_images/compass.png"),
-        ("../../assets/item_template_images/coral.png"),
-        ("../../assets/item_template_images/crystal.png"),
-        ("../../assets/item_template_images/diamond.png"),
-        ("../../assets/item_template_images/emerald.png"),
-        ("../../assets/item_template_images/fossil.png"),
-        ("../../assets/item_template_images/key.png"),
-        ("../../assets/item_template_images/letter.png"),
-        ("../../assets/item_template_images/shell.png"),
-        ("../../assets/item_template_images/treasure_box.png"),
-        ("./data/images/3c115d9c-8839-4ae8-9f3f-96d514dd5831.png"),
-        ('./data/images/4b76e214-5bef-4adc-981f-ad6119932306.png'),
-        ('./data/images/468070fc-23e0-4034-90ae-ca86b39935b7.png'),
-        ('./data/images/c07d7f1c-581c-4b12-9105-9a131705f785.png'),
-        ('./data/images/482585764_1455590368759521_6647519779772489171_n.png'),
-        ('./data/images/490238254_1842446786580514_8292045078609051837_n.png'),
-        ('./data/images/490752727_3922194774688090_1916180895651358198_n.png'),
-        ('./data/images/490797075_9500783306706076_2074756401633110199_n.png'),
-        ('./data/images/490986346_1041000924540372_5860720053675956248_n.png'),
-        ('./data/images/491008900_1819195295531383_8823035513900614833_n.png')
+        # ("../../assets/item_template_images/coin.png"),
+        # ("../../assets/item_template_images/compass.png"),
+        # ("../../assets/item_template_images/coral.png"),
+        # ("../../assets/item_template_images/crystal.png"),
+        # ("../../assets/item_template_images/diamond.png"),
+        # ("../../assets/item_template_images/emerald.png"),
+        # ("../../assets/item_template_images/fossil.png"),
+        # ("../../assets/item_template_images/key.png"),
+        # ("../../assets/item_template_images/letter.png"),
+        # ("../../assets/item_template_images/shell.png"),
+        # ("../../assets/item_template_images/treasure_box.png"),
+        # ("./data/images/3c115d9c-8839-4ae8-9f3f-96d514dd5831.png"),
+        # ('./data/images/4b76e214-5bef-4adc-981f-ad6119932306.png'),
+        # ('./data/images/468070fc-23e0-4034-90ae-ca86b39935b7.png'),
+        # ('./data/images/c07d7f1c-581c-4b12-9105-9a131705f785.png'),
+        # ('./data/images/482585764_1455590368759521_6647519779772489171_n.png'),
+        # ('./data/images/490238254_1842446786580514_8292045078609051837_n.png'),
+        # ('./data/images/490752727_3922194774688090_1916180895651358198_n.png'),
+        # ('./data/images/490797075_9500783306706076_2074756401633110199_n.png'),
+        # ('./data/images/490986346_1041000924540372_5860720053675956248_n.png'),
+        # ('./data/images/491008900_1819195295531383_8823035513900614833_n.png'),
+
+        ('./data/images/490987923_1592022961497407_7986231710546812446_n.png'),
+        ('./data/images/490989165_708828328475670_4674166509344416645_n.png'),
+        ('./data/images/490992385_3851723318307656_1266525493606877568_n.png'),
+        ('./data/images/491009695_1584506758911653_3678992970643951801_n.png'),
+        ('./data/images/491265658_1127518549177842_1858485317963113227_n.png'),
     ]
 
     for file in filelist:
